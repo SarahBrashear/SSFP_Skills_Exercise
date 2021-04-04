@@ -14,6 +14,179 @@ knitr::opts_chunk$set(echo = FALSE)
 ```{r packages}
 
 library(tidyverse)
+library(readxl)
+library(janitor)
+
+```
+
+```{r data_prep}
+
+raw_data <- read_excel("2021-03-29_Data_for_Skills_Exercise.xlsx",
+                       sheet = "Data",
+                       skip = 1,
+                       col_names = TRUE)
+
+clean_data <- raw_data %>%
+  clean_names() 
+
+```
+
+```{r explore}
+# Exploratory Data Analysis
+
+view(clean_data)
+summary(clean_data)
+
+# Since traditional indicators of SES include income, education, and occupation,
+# I'm looking at variables related to these first. 
+```
+
+```{r explore_income}
+# Median Household Income
+summary(clean_data$median_household_income)
+
+# Median Household Income ranges from $34,338 to $219,083, indicating wide
+# disparity of income between towns. 
+# Mean = $91,779; Median = $89,255
+
+# Visualizing the spread of median household income:
+income_plot <- clean_data %>%
+  ggplot(aes(x = median_household_income)) +
+  geom_histogram(aes(y = stat(count)/sum(stat(count))),
+                 bins = 70) +
+  labs(title = "Distribution of Median Household Income",
+       x = "Median Household Income",
+       y = "Percent of Connecticut Towns") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_classic()
+
+quantile(clean_data$median_household_income, probs = c(0.05, 0.95))
+
+# 90% of towns have median household income between $55,421 and $140,375
+
+```
+
+```{r explore_education}
+# Education
+
+# This data set includes five discrete bins of educational attainment; it's not 
+# reported on a continuous scale.
+
+# I'm creating an educational attainment scale for each town that is continuous.
+# Each education bin will be assigned to a multiplier (0-4) with larger values
+# corresponding to more advanced educational attainment. 
+
+# Then, I will multiply the number of residents with that degree of educational
+# attainment by each multiplier, and divide by the total number of residents
+# represented in the educational attainment data. 
+
+# Note: I am not dividing by the population, which may include residents under
+# age 25, and therefore may skew the index in towns with particularly large or 
+# small numbers of children in the population.
+
+# The purpose of this scale is to represent the fact that higher degrees of 
+# educational attainment likely yield higher SES outcomes in the long-run. I 
+# also wanted to avoid oversimplifying the available data like I would have if 
+# I had simply created a dichotomous variable (like college/no college, for 
+# example), and then calculated the percent of each town that has a college 
+# degree. 
+
+ed_scale_data <- clean_data %>%
+  select(less_than_high_school_diploma, high_school_diploma_ged_or_equivalent, 
+         some_college, associates_degree, bachelors_degree_or_higher) %>%
+  rowwise() %>% 
+    mutate(total = sum(c_across())) %>%
+    mutate(ed_scale = ((less_than_high_school_diploma * 0) +
+                      (high_school_diploma_ged_or_equivalent * 1) + 
+                      (some_college * 2) +
+                      (associates_degree * 3) +
+                      (bachelors_degree_or_higher * 4)) /
+              total)
+
+
+summary(ed_scale_data$ed_scale)
+# The education index ranges from 1.550 to 3.549
+# Mean = 2.509; Median = 2.525
+
+education_plot <- ed_scale_data %>%
+  ggplot(aes(x = ed_scale)) +
+  geom_histogram(aes(y = stat(count)/sum(stat(count))),
+                 bins = 50) +
+  labs(title = "Distribution of Educational Attainment",
+       x = "Education Index",
+       y = "Percent of Connecticut Towns") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_classic()
+
+quantile(ed_scale_data$ed_scale, probs = c(0.05, 0.95))
+
+# 90% of towns fall between 1.86 and 3.17 on the educational attainment scale.
+```
+
+```{r explore_occupation}
+# Occupation
+# Traditional SES indices tend to consider type of labor (unemployed, unskilled,
+# skilled, professional). Since I don't have that data, I'm looking at 
+# unemployment rates as a measure of occupation.
+
+summary(clean_data$unemployment_rate)
+
+# Unemployment Rate ranges from 2.4% to 6.9%
+# For context, the U.S. unemployment rate in 2018 was 3.86%
+
+# Visualizing the spread of unemployment rate:
+home_value_plot <- clean_data %>%
+  ggplot(aes(x = unemployment_rate)) +
+  geom_histogram(aes(y = stat(count)/sum(stat(count))),
+                 bins = 70) +
+  labs(title = "Distribution of Unemployment Rates",
+       x = "Unemployment Rate",
+       y = "Percent of Connecticut Towns") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_x_continuous(labels = scales::percent_format())
+  theme_classic()
+  
+quantile(clean_data$unemployment_rate, probs = c(0.05, 0.95))
+
+# 90% of towns have unemployment rates between 2.87% and 5.14%.
+```
+  
+```{r explore_homevalue}
+# Estimated Median Home Values
+# Since the municipalities generate revenue primarily through property taxes,
+# estimated median home value may also be an important consideration when 
+# deciding how to distribute municipal aid equitably. 
+
+# For example, two towns could have comparable ratings on the SES index I've
+# created here, and yet be generating dramatically different amounts of revenue
+# through property taxes. 
+
+summary(clean_data$estimated_median_home_value)
+
+# Estimated Median Home Values range from $128,800 to $1,461,100. Again, this
+# indicates wide disparity of wealth between towns.
+# Mean = $322,062; Median = $278,700
+# Vast majority of towns have median home values < $500,000.
+
+# Visualizing the spread of estimated median home values:
+home_value_plot <- clean_data %>%
+  ggplot(aes(x = estimated_median_home_value)) +
+  geom_histogram(aes(y = stat(count)/sum(stat(count))),
+                 bins = 70) +
+  labs(title = "Distribution of Estimated Median Home Value",
+       x = "Estimated Median Home Value",
+       y = "Percent of Connecticut Towns") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_classic()
+
+# Ultimately, this consideration is outside the scope of the skills exercise.
+# Rather than being factored into the holistic measure of town socioeconomic 
+# status, the median home value data ought to be part of the allocation 
+# formula itself, along with other factors such as property tax rates and 
+# population size. 
+```
+
+```{r}
 
 ```
 
