@@ -12,15 +12,12 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ```{r packages}
-
 library(tidyverse)
 library(readxl)
 library(janitor)
-
 ```
 
 ```{r data_prep}
-
 raw_data <- read_excel("2021-03-29_Data_for_Skills_Exercise.xlsx",
                        sheet = "Data",
                        skip = 1,
@@ -28,7 +25,6 @@ raw_data <- read_excel("2021-03-29_Data_for_Skills_Exercise.xlsx",
 
 clean_data <- raw_data %>%
   clean_names() 
-
 ```
 
 ```{r explore}
@@ -103,8 +99,13 @@ ed_scale_data <- clean_data %>%
                       (bachelors_degree_or_higher * 4)) /
               total)
 
+# Now that the scores are calculated for each municipality, I am adding back in
+# the municipality name so I can join by municipality name later on.
+ed_scale_data$municipality=c(clean_data$municipality)
+
 
 summary(ed_scale_data$ed_scale)
+
 # The education index ranges from 1.550 to 3.549
 # Mean = 2.509; Median = 2.525
 
@@ -121,6 +122,8 @@ education_plot <- ed_scale_data %>%
 quantile(ed_scale_data$ed_scale, probs = c(0.05, 0.95))
 
 # 90% of towns fall between 1.86 and 3.17 on the educational attainment scale.
+# Substantively, this isn't particularly insightful since these aren't in 
+# meaningful units. 
 ```
 
 ```{r explore_occupation}
@@ -150,43 +153,74 @@ quantile(clean_data$unemployment_rate, probs = c(0.05, 0.95))
 
 # 90% of towns have unemployment rates between 2.87% and 5.14%.
 ```
-  
-```{r explore_homevalue}
-# Estimated Median Home Values
-# Since the municipalities generate revenue primarily through property taxes,
-# estimated median home value may also be an important consideration when 
-# deciding how to distribute municipal aid equitably. 
 
-# For example, two towns could have comparable ratings on the SES index I've
-# created here, and yet be generating dramatically different amounts of revenue
-# through property taxes. 
 
-summary(clean_data$estimated_median_home_value)
+```{r dimension_indices}
+# After analyzing the available data, I decided to create an SES index made up
+# of the three component parts outlined above: Median Household Income, 
+# Educational Attainment, and Employment Rate. 
 
-# Estimated Median Home Values range from $128,800 to $1,461,100. Again, this
-# indicates wide disparity of wealth between towns.
-# Mean = $322,062; Median = $278,700
-# Vast majority of towns have median home values < $500,000.
+# The first step was to transform these variables, which are expressed 
+# in different units, into indices that fall between 0 and 1. 
 
-# Visualizing the spread of estimated median home values:
-home_value_plot <- clean_data %>%
-  ggplot(aes(x = estimated_median_home_value)) +
-  geom_histogram(aes(y = stat(count)/sum(stat(count))),
-                 bins = 70) +
-  labs(title = "Distribution of Estimated Median Home Value",
-       x = "Estimated Median Home Value",
-       y = "Percent of Connecticut Towns") +
-  scale_y_continuous(labels = scales::percent_format()) +
-  theme_classic()
+# The formula I used is below:
 
-# Ultimately, this consideration is outside the scope of the skills exercise.
-# Rather than being factored into the holistic measure of town socioeconomic 
-# status, the median home value data ought to be part of the allocation 
-# formula itself, along with other factors such as property tax rates and 
-# population size. 
+# Dimension Index = (actual value - minimum value) / 
+#                   (maximum value - minimum value)
+
 ```
 
-```{r}
+```{r income_index}
+# The goal posts for a town's median household income are $30,000 for the lower
+# limit, and $200,000 for the upper limit. 
 
+income_index_data <- clean_data %>%
+  select(municipality, median_household_income) %>%
+  mutate(income_index = ((median_household_income - 30000) / 
+                           (220000 - 30000))) %>%
+  select(municipality, income_index)
+```
+
+```{r education_index}
+# The goal posts for a town's median educational attainment are 1.5 for the 
+# lower limit, and 3.5 for the upper limit. 
+
+education_index_data <- ed_scale_data %>%
+  select(municipality, ed_scale) %>%
+  mutate(education_index = ((ed_scale - 1.5) / 
+                           (3.5 - 1.5))) %>%
+  select(municipality, education_index)
+```
+
+```{r employment_index}
+# For this component, I'm using the percentage employed, rather than unemployed.
+# The lower goalpost is 90% and the upper goalpost is 100% employment.
+
+employment_index_data <- clean_data %>%
+  select(municipality, unemployment_rate) %>%
+  mutate(employment_rate = 1 - unemployment_rate) %>%
+  mutate(employment_index = ((employment_rate - .90) / 
+                           (1.00 - .90))) %>%
+  select(municipality, employment_index)
+```
+
+```{r SES_index}
+# Now that I have each component of my SES index, I need to aggregate the 
+# indices into one total measure value.
+
+# I'm choosing to give equal weight to each component, although an argument could
+# be made for assigning more or less weight to each element. 
+
+# Another thing that could alter the weight assigned to each component part is
+# choosing different upper and lower goalpost limits in the previous step, when 
+# I transformed the variables to scales of 0 to 1. 
+
+SES_index_data <- inner_join(income_index_data, education_index_data, by = "municipality") %>%
+  inner_join(employment_index_data, by = "municipality") %>%
+  mutate(SES_index = (income_index * education_index * employment_index)^(1/3)) %>%
+  select(municipality, SES_index) 
+
+# Ultimately, the SES Index is the geometric mean of the three component 
+# indices (income, education, and employment).
 ```
 

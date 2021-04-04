@@ -1,0 +1,61 @@
+---
+title: "Untitled"
+author: "Sarah Brashear"
+date: "4/4/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r packages}
+library(tidyverse)
+library(readxl)
+library(janitor)
+```
+
+```{r data_prep}
+raw_data <- read_excel("2021-03-29_Data_for_Skills_Exercise.xlsx",
+                       sheet = "Data",
+                       skip = 1,
+                       col_names = TRUE)
+
+clean_data <- raw_data %>%
+  clean_names() 
+```
+
+```{r explore_homevalue}
+# Estimated Median Home Values
+# Since the municipalities generate revenue primarily through property taxes,
+# estimated median home value may also be an important consideration when 
+# deciding how to distribute municipal aid equitably. 
+
+# For example, two towns could have comparable ratings on the SES index I've
+# created here, and yet be generating dramatically different amounts of revenue
+# through property taxes. 
+
+summary(clean_data$estimated_median_home_value)
+
+# Estimated Median Home Values range from $128,800 to $1,461,100. Again, this
+# indicates wide disparity of wealth between towns.
+# Mean = $322,062; Median = $278,700
+# Vast majority of towns have median home values < $500,000.
+
+# Visualizing the spread of estimated median home values:
+home_value_plot <- clean_data %>%
+  ggplot(aes(x = estimated_median_home_value)) +
+  geom_histogram(aes(y = stat(count)/sum(stat(count))),
+                 bins = 70) +
+  labs(title = "Distribution of Estimated Median Home Value",
+       x = "Estimated Median Home Value",
+       y = "Percent of Connecticut Towns") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_classic()
+
+# Ultimately, I decided this consideration falls outside the scope of the skills 
+# exercise. Rather than being factored into the holistic measure of town 
+# socioeconomic status, the median home value data ought to be part of the 
+# allocation formula itself, along with other factors such as property tax rates 
+# and population size. 
+```
