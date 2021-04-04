@@ -1,0 +1,19 @@
+---
+title: |
+  <center> School + State Finance Project </center>
+  <center> Data Analyst Skills Exercise </center>
+author: "Sarah Brashear"
+date: "Last Modified: 4/4/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r packages}
+
+library(tidyverse)
+
+```
+
