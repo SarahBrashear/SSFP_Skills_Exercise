@@ -1,7 +1,9 @@
 ---
-title: "Untitled"
+title: |
+  <center> School + State Finance Project </center>
+  <center> Data Analyst Skills Exercise </center>
 author: "Sarah Brashear"
-date: "4/4/2021"
+date: "Last Modified: 4/4/2021"
 output: html_document
 ---
 
@@ -91,6 +93,6 @@ clean_data %>%
 
 # Some of these outliers (Stamford, Kent, Norwalk) do not have particularly low 
 # SES scores using the index I created, which means that including this metric 
-# may have changed the grouping of towns considerably. 
+# may change the grouping of towns considerably. 
 ```
 
