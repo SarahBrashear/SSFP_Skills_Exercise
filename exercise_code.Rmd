@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(readxl)
 library(janitor)
+library(BAMMtools)
 ```
 
 ```{r data_prep}
@@ -222,5 +223,48 @@ SES_index_data <- inner_join(income_index_data, education_index_data, by = "muni
 
 # Ultimately, the SES Index is the geometric mean of the three component 
 # indices (income, education, and employment).
+```
+
+```{r grouping_towns}
+getJenksBreaks(SES_index_data$SES_index, 5, subset = NULL)
+# Natural breaks at: 0.05551206 0.33443688 0.48107848 0.63525565 0.86693081
+
+# Low SES
+SES_index_data %>%
+  filter(SES_index <= 0.33443688)
+# 32 municipalities
+
+# Moderate SES
+SES_index_data %>%
+  filter(SES_index > 0.33443688,
+         SES_index <= 0.48107848)
+# 66 municipalities
+
+# High SES
+SES_index_data %>%
+  filter(SES_index > 0.48107848,
+         SES_index <= 0.63525565)
+# 57 municipalities
+
+# Highest SES
+SES_index_data %>%
+  filter(SES_index > 0.63525565,
+         SES_index <= 0.86693081)
+#13 municipalities
+
+median(SES_index_data$SES_index)
+mean(SES_index_data$SES_index)
+# The median is .47 and the mean is .46, so even the second lowest group contains 
+# municipalities above average. 
+
+final_data <- SES_index_data %>%
+  mutate(
+    SES_level = case_when(SES_index <= 0.33443688 ~ "Low SES",
+                          SES_index > 0.33443688 &
+                          SES_index <= 0.48107848 ~ "Moderate SES",
+                          SES_index > 0.48107848 &
+                          SES_index <= 0.63525565 ~ "High SES",
+                          SES_index > 0.63525565 &
+                          SES_index <= 0.86693081 ~ "Highest SES"))
 ```
 
