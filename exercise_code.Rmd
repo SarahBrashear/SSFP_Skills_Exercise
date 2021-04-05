@@ -264,7 +264,6 @@ final_data <- SES_index_data %>%
                           SES_index <= 0.48107848 ~ "Moderate SES",
                           SES_index > 0.48107848 &
                           SES_index <= 0.63525565 ~ "High SES",
-                          SES_index > 0.63525565 &
-                          SES_index <= 0.86693081 ~ "Highest SES"))
+                          SES_index > 0.63525565  ~ "Highest SES"))
 ```
 

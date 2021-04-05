@@ -59,3 +59,38 @@ home_value_plot <- clean_data %>%
 # allocation formula itself, along with other factors such as property tax rates 
 # and population size. 
 ```
+
+```{r explore_SNAP_TFA}
+summary(clean_data$snap_recipients)
+summary(clean_data$tfa_participants)
+
+# I thought about adding one or both of these variables to my SES Index. On one
+# hand, SNAP eligibility takes assets into consideration in addition to income,
+# so it may add a level of depth to the index in that regard. But, I was 
+# concerned that adding it as a fourth component and keeping all four equally
+# weighted may have the effect of putting too much weight on wealth, and reduce
+# the weight of education and employment. 
+
+# I ruled out TFA because it is a transitional program that participants engage
+# in for up to 21 months in Connecticut. We only have data from 2018, so without
+# longitudinal data on TFA, I decided to exclude it. 
+```
+
+```{r explore_insurance}
+summary(clean_data$percent_without_health_insurance)
+
+clean_data %>%
+  select(municipality, percent_without_health_insurance) %>%
+  arrange(desc(percent_without_health_insurance))
+
+# Most of the research I read about calculating  or measuring SES did
+# not include metrics related to health or health insurance, so I did not 
+# initially intend to use this variable. Upon further analysis, I was surprised
+# by the outliers with much higher %s without health insurance than the other 
+# towns. Notably: Norwalk, Danbury, Bridgeport, Kent, and Stamford.
+
+# Some of these outliers (Stamford, Kent, Norwalk) do not have particularly low 
+# SES scores using the index I created, which means that including this metric 
+# may have changed the grouping of towns considerably. 
+```
+
